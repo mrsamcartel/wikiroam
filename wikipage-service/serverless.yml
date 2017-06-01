@@ -1,0 +1,17 @@
+service: wikipage
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: us-east-1
+
+functions:
+  wikipageSubmit:
+    handler: api/wikipages.submit
+    memorySize: 128
+    description: Store a wikipage to DB.
+    events:
+      - http:
+          path: wikipages
+          method: post
