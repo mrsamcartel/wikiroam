@@ -1,0 +1,20 @@
+{
+  "name": "wikiskim",
+  "version": "1.0.0",
+  "description": "**Better browsing for Wikipedia**",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrsamcartel/wikiskim.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mrsamcartel/wikiskim/issues"
+  },
+  "homepage": "https://github.com/mrsamcartel/wikiskim#readme"
+}
