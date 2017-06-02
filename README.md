@@ -51,7 +51,7 @@ TBD
 
 ### API
 
-* wikipage (get)
+* api/wikipages [GET / POST]
 
 ### MediaWiki action API
 
@@ -60,7 +60,7 @@ TBD
 * Get WhatLinksHere by pageid: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=linkshere&pageids=736`
 * Get WhatLinksHere by pageid for articles only: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=linkshere&pageids=736&lhnamespace=0`
 
-### AWS APIs
+### [AWS.DynamoDB.DocumentClient](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html) API
 
 Get a client with `const dynamoDb = new AWS.DynamoDB.DocumentClient();` then provide callbacks in the form `function(err, data)` and `params` in the form:
 ```
@@ -81,10 +81,10 @@ var params = {
 ```
 
 Key methods:
-* `dynamoDb.getItem(params = {}, callback) ⇒ AWS.Request` returns a set of attributes for the item with the given primary key
+* `dynamoDb.get(params = {}, callback) ⇒ AWS.Request` returns a set of attributes for the item with the given primary key
 * `dynamoDb.scan(params = {}, callback) ⇒ AWS.Request` returns one or more items and item attributes by accessing every item in a table or a secondary index
-* `dynamoDb.putItem(params = {}, callback) ⇒ AWS.Request` creates a new item, or replaces an old item with a new item (entirely!)
-* `dynamoDb.updateItem(params = {}, callback) ⇒ AWS.Request` edits an existing item's attributes, or adds a new item to the table if it does not already exist
+* `dynamoDb.put(params = {}, callback) ⇒ AWS.Request` creates a new item, or replaces an old item with a new item (entirely!)
+* `dynamoDb.update(params = {}, callback) ⇒ AWS.Request` edits an existing item's attributes, or adds a new item to the table if it does not already exist
 
 ### AWS Tips and Tricks
 

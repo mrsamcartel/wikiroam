@@ -97,3 +97,40 @@ module.exports.list = (event, context, callback) => {
 
   dynamoDb.scan(params, onScan);
 }
+
+// wikipageGet function
+module.exports.get = (event, context, callback) => {
+
+  const id = event.pathParameters.id;
+
+  if (typeof id !== 'string') {
+    console.error('Validation Failed');
+    callback(new Error('Couldn\'t get wikipage because of validation errors.'));
+    return;
+  }
+
+  var params = {
+    TableName: process.env.WIKIPAGE_TABLE,
+    Key : { 
+      id: id,
+    },
+  }
+
+  console.log(`Getting Wikipage item with id: ${id}.`);
+
+  const onGet = (err, data) => {
+    if (err) {
+      console.log('Get failed to load data. Error JSON:', JSON.stringify(err, null, 2));
+      callback(err);
+    } else {
+      console.log("Get succeeded.");
+      return callback(null, {
+        statusCode: 200,
+        body: JSON.stringify(data.Item)
+      });
+    }
+  };
+
+  dynamoDb.get(params, onGet);
+
+}

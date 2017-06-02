@@ -33,6 +33,14 @@ functions:
       - http:
           path: wikipages
           method: get
+  wikipagesGet:
+    handler: api/wikipages.get
+    memorySize: 128
+    description: Get a wikipage by id.
+    events:
+      - http:
+          path: wikipages/{id}
+          method: get
 
 resources:
   Resources:
