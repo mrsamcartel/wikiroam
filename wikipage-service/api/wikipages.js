@@ -7,6 +7,7 @@ AWS.config.setPromisesDependency(require('bluebird'));
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
+// wikipageSubmit function
 module.exports.submit = (event, context, callback) => {
   const requestBody = JSON.parse(event.body);
   const title = requestBody.title;
@@ -27,6 +28,7 @@ module.exports.submit = (event, context, callback) => {
   // };
   // callback(null, response);
 
+  //TODO: Avoid storing duplicate pageids; retrieve id and updateItem instead
   submitWikipageP(wikipageInfo(pageid, title))
     .then(res => {
       callback(null, {
@@ -59,12 +61,39 @@ const submitWikipageP = wikipage => {
 };
 
 const wikipageInfo = (pageid, title) => {
-    const timestamp = new Date().getTime();
-    return {
-      id: uuid.v1(),
-      title: title,
-      pageid: pageid,
-      submittedAt: timestamp,
-      updatedAt: timestamp,
-    };
+  const timestamp = new Date().getTime();
+  return {
+    id: uuid.v1(),
+    title: title,
+    pageid: pageid,
+    submittedAt: timestamp,
+    updatedAt: timestamp,
+  };
 };
+
+// wikipageList function
+module.exports.list = (event, context, callback) => {
+  var params = {
+    TableName: process.env.WIKIPAGE_TABLE,
+    ProjectionExpression: "id, pageid, title"
+  };
+
+  console.log("Scanning Wikipage table.");
+
+  const onScan = (err, data) => {
+    if (err) {
+      console.log('Scan failed to load data. Error JSON:', JSON.stringify(err, null, 2));
+      callback(err);
+    } else {
+      console.log("Scan succeeded.");
+      return callback(null, {
+        statusCode: 200,
+        body: JSON.stringify({
+          wikipages: data.Items
+        })
+      });
+    }
+  };
+
+  dynamoDb.scan(params, onScan);
+}

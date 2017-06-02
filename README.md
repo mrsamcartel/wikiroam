@@ -49,15 +49,47 @@ TBD
 
 ## Backend
 
+### API
+
+* wikipage (get)
+
 ### MediaWiki action API
 
 * Get page by pageid: `https://en.wikipedia.org/?curid=736`
+* Get pageinfo by pageid: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=info&pageids=736`
 * Get WhatLinksHere by pageid: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=linkshere&pageids=736`
 * Get WhatLinksHere by pageid for articles only: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=linkshere&pageids=736&lhnamespace=0`
+
+### AWS APIs
+
+Get a client with `const dynamoDb = new AWS.DynamoDB.DocumentClient();` then provide callbacks in the form `function(err, data)` and `params` in the form:
+```
+var params = {
+    ExpressionAttributeNames: {
+        "AT": "AlbumTitle",
+        "ST": "SongTitle"
+    },
+    ExpressionAttributeValues: {
+        ":a": {
+            S: "No One You Know"
+        }
+    },
+    FilterExpression: "Artist = :a",
+    ProjectionExpression: "#ST, #AT",
+    TableName: "Music"
+};
+```
+
+Key methods:
+* `dynamoDb.getItem(params = {}, callback) ⇒ AWS.Request` returns a set of attributes for the item with the given primary key
+* `dynamoDb.scan(params = {}, callback) ⇒ AWS.Request` returns one or more items and item attributes by accessing every item in a table or a secondary index
+* `dynamoDb.putItem(params = {}, callback) ⇒ AWS.Request` creates a new item, or replaces an old item with a new item (entirely!)
+* `dynamoDb.updateItem(params = {}, callback) ⇒ AWS.Request` edits an existing item's attributes, or adds a new item to the table if it does not already exist
 
 ### AWS Tips and Tricks
 
 * [How to setup API Gateway behind a custom name](http://www.davekonopka.com/2016/serverless-aws-lambda-api-gateway.html) (hint: a certificate is required)
+* [Hands-on serverless guide](https://github.com/shekhargulati/hands-on-serverless-guide)
 
 ## Learning Objectives
 
@@ -65,7 +97,7 @@ TBD
 * Angular
 * RxJS for dynamic search
 * Mongo
-* [Serverless](https://github.com/serverless/serverless)
+* Serverless ([github](https://github.com/serverless/serverless) | [website](https://serverless.com/))
 
 ## Product Management Learnings
 

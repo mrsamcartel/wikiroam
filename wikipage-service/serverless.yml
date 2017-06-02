@@ -25,6 +25,14 @@ functions:
       - http:
           path: wikipages
           method: post
+  wikipageList:
+    handler: api/wikipages.list
+    memorySize: 128
+    description: Get all wikipages from DB.
+    events:
+      - http:
+          path: wikipages
+          method: get
 
 resources:
   Resources:
