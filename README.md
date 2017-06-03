@@ -86,17 +86,23 @@ Key methods:
 * `dynamoDb.put(params = {}, callback) ⇒ AWS.Request` creates a new item, or replaces an old item with a new item (entirely!)
 * `dynamoDb.update(params = {}, callback) ⇒ AWS.Request` edits an existing item's attributes, or adds a new item to the table if it does not already exist
 
-### AWS Tips and Tricks
+### AWS Tips, Tricks & Resources
 
+* [Awesome Serverless Master List](https://github.com/anaibol/awesome-serverless)
 * [How to setup API Gateway behind a custom name](http://www.davekonopka.com/2016/serverless-aws-lambda-api-gateway.html) (hint: a certificate is required)
 * [Hands-on serverless guide](https://github.com/shekhargulati/hands-on-serverless-guide)
+* [Fullstack Serverless Guide](http://serverless-stack.com/)
+* [Reference Serverless Architecture on AWS](https://www.slideshare.net/mitocgroup/serverless-microservices-real-life-story-of-a-web-app-that-uses-angularjs-aws-lambda-and-more)
+* [Serverless Client S3 Plugin](https://github.com/serverless/serverless-client-s3)
+* [Serverless REvolution for Everyone](http://thewebivore.com/serverless-revolution-for-everyone/)
+* [Bustle Architecture Case Study](https://aws.amazon.com/solutions/case-studies/bustle/)
 
 ## Learning Objectives
 
 * Javascript
 * Angular
 * RxJS for dynamic search
-* Mongo
+* AWS APIs (DynamoDB | API Gateway)
 * Serverless ([github](https://github.com/serverless/serverless) | [website](https://serverless.com/))
 
 ## Product Management Learnings
