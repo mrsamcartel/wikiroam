@@ -1,0 +1,16 @@
+service: wikiroam-client
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: us-east-1
+  environment:
+    CLIENT_BUCKETNAME: "${self:service}-${opt:stage, self:provider.stage}"
+
+plugins:
+  - serverless-client-s3
+
+custom:
+  client:
+    bucketName: ${self:provider.environment.CLIENT_BUCKETNAME}

@@ -45,7 +45,46 @@
 
 ## Frontend
 
-TBD
+[Angular](https://angular.io/) app served by [serverless](https://serverless.com/) through the [serverless-client-s3 plugin](https://github.com/serverless/serverless-client-s3).
+
+### Setup and configure serverless-client-s3
+```
+mkdir wikiroam-client && cd wikiroam-client
+sls create -t aws-nodejs
+npm init -f
+npm install --save serverless-client-s3
+```
+
+Update `serverless.yml` as follows:
+```
+service: wikiroam-client
+
+provider:
+  name: aws
+  stage: dev
+  region: us-east-1
+  environment:
+    CLIENT_BUCKETNAME: "${self:service}-${opt:stage, self:provider.stage}"
+
+plugins:
+  - serverless-client-s3
+
+custom:
+  client:
+    bucketName: ${self:provider.environment.CLIENT_BUCKETNAME}
+```
+
+### Setup, build and deploy Angular
+
+```
+ng new client
+mkdir -p mkdir/dist
+ng build
+sls client deploy
+```
+
+Navigate to `http://{CLIENT_BUCKETNAME}.s3-website-us-east-1.amazonaws.com` to check that dev website is live.
+Note: the default setting is to deploy the app to a public s3 bucket with no restriction.
 
 ## Backend
 
