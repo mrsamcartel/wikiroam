@@ -7,7 +7,7 @@ AWS.config.setPromisesDependency(require('bluebird'));
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
-// wikipageSubmit function
+// wikipagesSubmit function
 module.exports.submit = (event, context, callback) => {
   const requestBody = JSON.parse(event.body);
   const title = requestBody.title;
@@ -71,7 +71,7 @@ const wikipageInfo = (pageid, title) => {
   };
 };
 
-// wikipageList function
+// wikipagesList function
 module.exports.list = (event, context, callback) => {
   var params = {
     TableName: process.env.WIKIPAGE_TABLE,
@@ -98,7 +98,7 @@ module.exports.list = (event, context, callback) => {
   dynamoDb.scan(params, onScan);
 }
 
-// wikipageGet function
+// wikipagesGet function
 module.exports.get = (event, context, callback) => {
 
   const id = event.pathParameters.id;
@@ -132,5 +132,49 @@ module.exports.get = (event, context, callback) => {
   };
 
   dynamoDb.get(params, onGet);
+}
 
+// wikipagesUpdate function
+module.exports.update = (event, context, callback) => {
+  const id = event.pathParameters.id;
+
+  if (typeof id !== 'string') {
+    console.error('Validation Failed');
+    callback(new Error('Couldn\'t update wikipage because of validation errors.'));
+    return;
+  }
+
+  const data = JSON.parse(event.body);
+  const timestamp = new Date().getTime();
+  data.updatedAt = timestamp;
+
+  //TODO: Handle missing attributes in request. Right now they'd cause an error in DynamoDB.update
+  var params = {
+    TableName: process.env.WIKIPAGE_TABLE,
+    Key : { 
+      id: id,
+    },
+    ExpressionAttributeValues: {
+      ':title': data.title,
+      ':pageid': data.pageid,
+      ':updatedAt': timestamp,
+    },
+    UpdateExpression: 'SET title = :title, pageid = :pageid, updatedAt = :updatedAt',
+    ReturnValues: 'ALL_NEW',
+  }
+
+  const onUpdate = (err, data) => {
+    if (err) {
+      console.log('Put failed to update data. Error JSON:', JSON.stringify(err, null, 2));
+      callback(err);
+    } else {
+      console.log("Put succeeded.");
+      return callback(null, {
+        statusCode: 200,
+        body: JSON.stringify(data.Attributes),
+      });
+    }
+  };
+
+  dynamoDb.update(params, onUpdate);
 }

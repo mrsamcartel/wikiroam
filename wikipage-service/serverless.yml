@@ -14,6 +14,8 @@ provider:
         - dynamodb:Scan
         - dynamodb:GetItem
         - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
       Resource: "*"
 
 functions:
@@ -41,6 +43,22 @@ functions:
       - http:
           path: wikipages/{id}
           method: get
+  wikipagesUpdate:
+    handler: api/wikipages.update
+    memorySize: 128
+    description: Update a wikipage by id.
+    events:
+      - http:
+          path: wikipages/{id}
+          method: put
+  # wikipagesDelete:
+  #   handler: api/wikipages.delete
+  #   memorySize: 128
+  #   description: Delete a wikipage by id.
+  #   events:
+  #     - http:
+  #         path: wikipages/{id}
+  #         method: delete
 
 resources:
   Resources:
