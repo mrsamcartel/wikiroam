@@ -7,6 +7,12 @@ provider:
   region: us-east-1
   environment:
     WIKIPAGE_TABLE: "${self:service}-${opt:stage, self:provider.stage}"
+    LOG_PREFIX: "${self:service}"
+    STAGE: "${opt:stage, self:provider.stage}"
+    SERVICE: "${self:service}"
+  tags:
+    stage: "${opt:stage, self:provider.stage}"
+    service: "${self:service}"
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -19,7 +25,7 @@ provider:
       Resource: "*"
 
 functions:
-  wikipageSubmit:
+  wikipagesSubmit:
     handler: api/wikipages.submit
     memorySize: 128
     description: Store a wikipage to DB.
@@ -27,7 +33,8 @@ functions:
       - http:
           path: wikipages
           method: post
-  wikipageList:
+          cors: true
+  wikipagesList:
     handler: api/wikipages.list
     memorySize: 128
     description: Get all wikipages from DB.
@@ -35,6 +42,7 @@ functions:
       - http:
           path: wikipages
           method: get
+          cors: true
   wikipagesGet:
     handler: api/wikipages.get
     memorySize: 128
@@ -43,6 +51,7 @@ functions:
       - http:
           path: wikipages/{id}
           method: get
+          cors: true
   wikipagesUpdate:
     handler: api/wikipages.update
     memorySize: 128
@@ -51,6 +60,7 @@ functions:
       - http:
           path: wikipages/{id}
           method: put
+          cors: true
   # wikipagesDelete:
   #   handler: api/wikipages.delete
   #   memorySize: 128
