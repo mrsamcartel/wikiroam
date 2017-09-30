@@ -90,7 +90,7 @@ Note: the default setting is to deploy the app to a public s3 bucket with no res
 
 ### API
 
-* api/wikipages [GET / POST]
+* api/wikipages [GET / POST / PUT]
 
 ### MediaWiki action API
 
@@ -133,7 +133,7 @@ Key methods:
 * [Fullstack Serverless Guide](http://serverless-stack.com/)
 * [Reference Serverless Architecture on AWS](https://www.slideshare.net/mitocgroup/serverless-microservices-real-life-story-of-a-web-app-that-uses-angularjs-aws-lambda-and-more)
 * [Serverless Client S3 Plugin](https://github.com/serverless/serverless-client-s3)
-* [Serverless REvolution for Everyone](http://thewebivore.com/serverless-revolution-for-everyone/)
+* [Serverless Revolution for Everyone](http://thewebivore.com/serverless-revolution-for-everyone/)
 * [Bustle Architecture Case Study](https://aws.amazon.com/solutions/case-studies/bustle/)
 
 ## Learning Objectives
@@ -143,6 +143,7 @@ Key methods:
 * RxJS for dynamic search
 * AWS APIs (DynamoDB | API Gateway)
 * Serverless ([github](https://github.com/serverless/serverless) | [website](https://serverless.com/))
+* Datadog ([doc](https://docs.datadoghq.com/) | [app](https://app.datadoghq.com))
 
 ## Product Management Learnings
 

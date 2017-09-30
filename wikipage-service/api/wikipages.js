@@ -23,6 +23,7 @@ const datalog = (metric_name, metric_type='count', metric_value=1, tags=[]) => {
 // wikipagesSubmit function
 //TODO: Refactor to align structure with other functions within the service
 module.exports.submit = (event, context, callback) => {
+  const start_time = new Date().getTime();
   const requestBody = JSON.parse(event.body);
   const title = requestBody.title;
   const pageid = requestBody.pageid;
@@ -44,7 +45,8 @@ module.exports.submit = (event, context, callback) => {
           wikipageId: res.id
         })
       }
-      datalog('db.responses', undefined, undefined,['status:200'])
+      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
       callback(null, response);
     })
     .catch(err => {
@@ -85,6 +87,7 @@ const wikipageInfo = (pageid, title) => {
 
 // wikipagesList function
 module.exports.list = (event, context, callback) => {
+  const start_time = new Date().getTime();
   var params = {
     TableName: process.env.WIKIPAGE_TABLE,
     ProjectionExpression: "id, pageid, title"
@@ -100,7 +103,9 @@ module.exports.list = (event, context, callback) => {
       callback(err);
     } else {
       console.log("Scan succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200'])
+      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.scan_count', 'histogram', data.Count);
+      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
       return callback(null, {
         statusCode: 200,
         headers: headers,
@@ -116,7 +121,7 @@ module.exports.list = (event, context, callback) => {
 
 // wikipagesGet function
 module.exports.get = (event, context, callback) => {
-
+  const start_time = new Date().getTime();
   const id = event.pathParameters.id;
 
   if (typeof id !== 'string') {
@@ -142,7 +147,8 @@ module.exports.get = (event, context, callback) => {
       callback(err);
     } else {
       console.log("Get succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200'])
+      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
       return callback(null, {
         statusCode: 200,
         headers: headers,
@@ -156,6 +162,7 @@ module.exports.get = (event, context, callback) => {
 
 // wikipagesUpdate function
 module.exports.update = (event, context, callback) => {
+  const start_time = new Date().getTime();
   const id = event.pathParameters.id;
 
   if (typeof id !== 'string') {
@@ -193,7 +200,8 @@ module.exports.update = (event, context, callback) => {
       callback(err);
     } else {
       console.log("Put succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200'])
+      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
       return callback(null, {
         statusCode: 200,
         headers: headers,
