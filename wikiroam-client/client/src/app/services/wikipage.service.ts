@@ -13,7 +13,7 @@ import 'rxjs/add/operator/catch';
 export class WikipageService {
 
   private headers = new Headers({'Content-Type': 'application/json'});
-  private apiUrl = 'https://n2rxoxn7ac.execute-api.us-east-1.amazonaws.com/dev/wikipages';  // URL to web api
+  private apiUrl = 'https://3xg1u0qubd.execute-api.us-east-1.amazonaws.com/dev/wikipages';  // URL to web api
 
   constructor(private http: Http) { }
 

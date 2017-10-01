@@ -16,5 +16,6 @@
   "bugs": {
     "url": "https://github.com/mrsamcartel/wikiroam/issues"
   },
-  "homepage": "https://github.com/mrsamcartel/wikiroam#readme"
+  "homepage": "https://github.com/mrsamcartel/wikiroam#readme",
+  "dependencies": {}
 }

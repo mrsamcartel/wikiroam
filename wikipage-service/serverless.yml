@@ -7,6 +7,7 @@ provider:
   region: us-east-1
   environment:
     WIKIPAGE_TABLE: "${self:service}-${opt:stage, self:provider.stage}"
+    WIKIPAGE_TABLE_INDEX: "${self:provider.environment.WIKIPAGE_TABLE}-pageid-index"
     LOG_PREFIX: "${self:service}"
     STAGE: "${opt:stage, self:provider.stage}"
     SERVICE: "${self:service}"
@@ -86,10 +87,22 @@ resources:
       Properties:
         AttributeDefinitions:
           - AttributeName: "id"
-            AttributeType: "S"   
+            AttributeType: "S"
+          - AttributeName: "pageid"
+            AttributeType: "N"
         KeySchema:
           - AttributeName: "id"
             KeyType: "HASH"
+        GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.WIKIPAGE_TABLE_INDEX}
+            KeySchema:
+              - AttributeName: "pageid"
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
