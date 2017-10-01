@@ -24,4 +24,12 @@ export class WikipageService {
                })
                .catch((error:any) => Observable.throw(error.json().error || 'Server error'));
   }
+
+  searchWikipages(word:String): Observable<Wikipage[]> {
+    return this.http.get(`${this.apiUrl}/search/${word}`)
+               .map((res: Response) => {
+                 return res.json().wikipages as Wikipage[];
+               })
+               .catch((error:any) => Observable.throw(error.json().error || 'Server error'));
+  }
 }

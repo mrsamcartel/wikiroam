@@ -1,11 +1,11 @@
-service: wikiroam-client
+service: wikiroam
 
 provider:
   name: aws
   stage: dev
   region: us-east-1
   environment:
-    CLIENT_BUCKETNAME: "${self:service}-${opt:stage, self:provider.stage}"
+    CLIENT_BUCKETNAME: "${opt:stage, self:provider.stage}.${self:service}.com"
 
 plugins:
   - serverless-client-s3

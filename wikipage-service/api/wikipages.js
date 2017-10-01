@@ -262,7 +262,7 @@ module.exports.search = (event, context, callback) => {
     return callback(null, {
       statusCode: 200,
       headers: headers,
-      body: JSON.stringify(pages)
+      body: JSON.stringify({'wikipages': pages})
     });
   })
   .catch(err => {

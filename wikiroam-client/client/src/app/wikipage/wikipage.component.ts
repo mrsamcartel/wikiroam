@@ -14,7 +14,8 @@ export class WikipageComponent implements OnInit {
     constructor(private wikipageService: WikipageService) { }
 
     ngOnInit(): void {
-        this.wikipageService.getWikipages().subscribe(wikipages => this.wikipages = wikipages);
+        // this.wikipageService.getWikipages().subscribe(wikipages => this.wikipages = wikipages);
+        this.wikipageService.searchWikipages('example').subscribe(wikipages => this.wikipages = wikipages);
     }
 
 }
