@@ -12,8 +12,13 @@ import 'rxjs/add/operator/catch';
 @Injectable()
 export class WikipageService {
 
-  private headers = new Headers({'Content-Type': 'application/json'});
-  private apiUrl = 'https://3xg1u0qubd.execute-api.us-east-1.amazonaws.com/dev/wikipages';  // URL to web api
+  private headers = new Headers({
+    'Content-Type': 'application/json',
+    "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+    "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
+  });
+  private apiUrl = 'https://3xg1u0qubd.execute-api.us-east-1.amazonaws.com/dev/wikipages'; // URL to web api
+
 
   constructor(private http: Http) { }
 
@@ -26,7 +31,7 @@ export class WikipageService {
   }
 
   searchWikipages(word:String): Observable<Wikipage[]> {
-    return this.http.get(`${this.apiUrl}/search/${word}`)
+    return this.http.get(`${this.apiUrl}/search/keyword/${word}`)
                .map((res: Response) => {
                  return res.json().wikipages as Wikipage[];
                })
