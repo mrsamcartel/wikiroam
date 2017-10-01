@@ -237,15 +237,14 @@ module.exports.search = (event, context, callback) => {
 
   rp(search_params)
   .then(res => {
-    console.log("Search succeeded.");
-    console.log(`returned data: ${JSON.stringify(res)}`);
-    datalog('search.responses', undefined, undefined,['status:200']);
-    datalog('search.latency', 'histogram', (new Date().getTime())-start_time);
     
     //TODO: Trigger SNS calls but don't wait on them
+    var pages = [];
     for (let key in res.query.pages) {
+      let page = res.query.pages[key];
+      pages.push(page);
       var params = {
-        Message: `${JSON.stringify(res.query.pages[key])}`,
+        Message: `${JSON.stringify(page)}`,
         TopicArn: `arn:aws:sns:us-east-1:${config.awsAccountId}:cacheWikipage`
       };
       console.log(`Publishing SNS message: ${params.Message}`);
@@ -255,10 +254,15 @@ module.exports.search = (event, context, callback) => {
       });
     }
 
+    console.log("Search succeeded.");
+    console.log(`returned data: ${JSON.stringify(pages)}`);
+    datalog('search.responses', undefined, undefined,['status:200']);
+    datalog('search.latency', 'histogram', (new Date().getTime())-start_time);
+
     return callback(null, {
       statusCode: 200,
       headers: headers,
-      body: JSON.stringify(res)
+      body: JSON.stringify(pages)
     });
   })
   .catch(err => {
