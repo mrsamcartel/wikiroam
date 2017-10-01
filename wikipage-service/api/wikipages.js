@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const AWS = require('aws-sdk');
 
 AWS.config.setPromisesDependency(require('bluebird'));
+const request = require('request-promise');
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const headers = {
@@ -211,4 +212,40 @@ module.exports.update = (event, context, callback) => {
   };
 
   dynamoDb.update(params, onUpdate);
+}
+
+// wikipagesSearch function
+module.exports.search = (event, context, callback) => {
+  const start_time = new Date().getTime();
+  const word = event.pathParameters.word;
+
+  console.log("Searching Wikipedia by keyword.");
+  datalog('search.queries');
+
+  var params = {
+    method: 'GET',
+    uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=info&generator=search&gsrnamespace=0&gsrsearch=${word}`,
+    headers: {
+      'User-Agent': 'Wikiskim'
+    },
+    json: true // Automatically parses the JSON string in the response
+  };
+
+  request(params)
+  .then(res => {
+    console.log("Search succeeded.");
+    console.log(`returned data: ${JSON.stringify(res)}`);
+    datalog('search.responses', undefined, undefined,['status:200']);
+    datalog('search.latency', 'histogram', (new Date().getTime())-start_time);
+    return callback(null, {
+      statusCode: 200,
+      headers: headers,
+      body: JSON.stringify(res)
+    });
+  })
+  .catch(err => {
+    console.log('Search failed to return data. Error JSON:', err);
+    datalog('search.responses', undefined, undefined,['status:500']);
+    callback(err);
+  });
 }

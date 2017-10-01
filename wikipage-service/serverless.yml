@@ -61,6 +61,15 @@ functions:
           path: wikipages/{id}
           method: put
           cors: true
+  wikipagesSearch:
+    handler: api/wikipages.search
+    memorySize: 128
+    description: Search wikipage by keyword.
+    events:
+      - http:
+          path: wikipages/search/{word}
+          method: get
+          cors: true
   # wikipagesDelete:
   #   handler: api/wikipages.delete
   #   memorySize: 128
