@@ -230,7 +230,7 @@ module.exports.search = (event, context, callback) => {
     method: 'GET',
     uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=info&generator=search&gsrnamespace=0&gsrsearch=${word}`,
     headers: {
-      'User-Agent': 'Wikiskim'
+      'User-Agent': 'Wikiroam'
     },
     json: true // Automatically parses the JSON string in the response
   };

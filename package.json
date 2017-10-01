@@ -1,5 +1,5 @@
 {
-  "name": "wikiskim",
+  "name": "wikiroam",
   "version": "1.0.0",
   "description": "**Better browsing for Wikipedia**",
   "main": "index.js",
@@ -8,13 +8,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mrsamcartel/wikiskim.git"
+    "url": "git+https://github.com/mrsamcartel/wikiroam.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mrsamcartel/wikiskim/issues"
+    "url": "https://github.com/mrsamcartel/wikiroam/issues"
   },
-  "homepage": "https://github.com/mrsamcartel/wikiskim#readme"
+  "homepage": "https://github.com/mrsamcartel/wikiroam#readme"
 }
