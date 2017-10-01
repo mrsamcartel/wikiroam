@@ -1,6 +1,7 @@
-<h3>Wikipages</h3>
-<div *ngFor="let wikipage of wikipages">
-    <h4>{{wikipage.title}}</h4>
-    <p>pageid: {{wikipage.pageid}}</p>
-    <p>id: {{wikipage.id}}</p>
-</div>
+<md-card class="mat-typography" *ngFor="let wikipage of wikipages">
+    <md-card-title>{{wikipage.title}}</md-card-title>
+    <md-card-content>
+        <p>pageid: {{wikipage.pageid}}</p>
+        <p *ngIf="wikipage.id">[id: {{wikipage.id}}]</p>
+    </md-card-content>
+</md-card>
