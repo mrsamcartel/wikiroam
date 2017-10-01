@@ -63,13 +63,22 @@ functions:
           path: wikipages/{id}
           method: put
           cors: true
-  wikipagesSearch:
-    handler: api/wikipages.search
+  wikipagesSearchByKeyword:
+    handler: api/wikipages.searchbykeyword
     memorySize: 128
     description: Search wikipage by keyword.
     events:
       - http:
-          path: wikipages/search/{word}
+          path: wikipages/search/keyword/{word}
+          method: get
+          cors: true
+  wikipagesGetByPageid:
+    handler: api/wikipages.searchbypageid
+    memorySize: 128
+    description: Get a wikipage by pageid.
+    events:
+      - http:
+          path: wikipages/search/pageid/{pageid}
           method: get
           cors: true
   wikipagesCache:
