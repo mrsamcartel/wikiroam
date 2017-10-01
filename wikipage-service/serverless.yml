@@ -22,6 +22,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - "sns:*"
       Resource: "*"
 
 functions:
@@ -70,14 +71,12 @@ functions:
           path: wikipages/search/{word}
           method: get
           cors: true
-  # wikipagesDelete:
-  #   handler: api/wikipages.delete
-  #   memorySize: 128
-  #   description: Delete a wikipage by id.
-  #   events:
-  #     - http:
-  #         path: wikipages/{id}
-  #         method: delete
+  wikipagesCache:
+    handler: api/wikipages.cache
+    memorySize: 128
+    description: Cache a wikipage from SNS cacheWikipage topic
+    events:
+      - sns: cacheWikipage
 
 resources:
   Resources:

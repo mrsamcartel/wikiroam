@@ -2,11 +2,15 @@
 
 const uuid = require('uuid');
 const AWS = require('aws-sdk');
+const config = require('../config.js');
 
 AWS.config.setPromisesDependency(require('bluebird'));
-const request = require('request-promise');
+const rp = require('request-promise');
+// const request = require('request');
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const sns = new AWS.SNS();
+
 const headers = {
   "Access-Control-Allow-Origin": "*", // Required for CORS support to work
   "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
@@ -222,7 +226,7 @@ module.exports.search = (event, context, callback) => {
   console.log("Searching Wikipedia by keyword.");
   datalog('search.queries');
 
-  var params = {
+  var search_params = {
     method: 'GET',
     uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=info&generator=search&gsrnamespace=0&gsrsearch=${word}`,
     headers: {
@@ -231,12 +235,26 @@ module.exports.search = (event, context, callback) => {
     json: true // Automatically parses the JSON string in the response
   };
 
-  request(params)
+  rp(search_params)
   .then(res => {
     console.log("Search succeeded.");
     console.log(`returned data: ${JSON.stringify(res)}`);
     datalog('search.responses', undefined, undefined,['status:200']);
     datalog('search.latency', 'histogram', (new Date().getTime())-start_time);
+    
+    //TODO: Trigger SNS calls but don't wait on them
+    for (let key in res.query.pages) {
+      var params = {
+        Message: `${JSON.stringify(res.query.pages[key])}`,
+        TopicArn: `arn:aws:sns:us-east-1:${config.awsAccountId}:cacheWikipage`
+      };
+      console.log(`Publishing SNS message: ${params.Message}`);
+      sns.publish(params, function(err, data) {
+        if (err) console.log(err, err.stack);
+        else     console.log(data);
+      });
+    }
+
     return callback(null, {
       statusCode: 200,
       headers: headers,
@@ -249,3 +267,46 @@ module.exports.search = (event, context, callback) => {
     callback(err);
   });
 }
+
+// wikipagesCache function
+//TODO: Implement Cache as SubmitOrUpdate to avoid duplicates
+//TODO: Only cache if existing value is older
+module.exports.cache = (event) => {
+  const start_time = new Date().getTime();
+  console.log(`Received cacheWikipage event: ${JSON.stringify(event)}`);
+  const message = JSON.parse(event.Records[0].Sns.Message);
+  const title = message.title;
+  const pageid = message.pageid;
+
+  if (typeof title !== 'string' || typeof pageid !== 'number') {
+    console.error('Validation Failed');
+    callback(new Error('Couldn\'t cache wikipage because of validation errors.'));
+    return;
+  }
+
+  //TODO: Avoid storing duplicate pageids; retrieve id and updateItem instead
+  submitWikipageP(wikipageInfo(pageid, title))
+    .then(res => {
+      const response = {
+        statusCode: 200,
+        headers: headers,
+        body: JSON.stringify({
+          message: `Sucessfully cached wikipage with pageid ${pageid} and title ${title}`,
+          wikipageId: res.id
+        })
+      }
+      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
+    })
+    .catch(err => {
+      console.log(err);
+      const response = {
+        statusCode: 500,
+        headers: headers,
+        body: JSON.stringify({
+          message: `Unable to cache candidate with pageid ${pageid} and title ${title}`
+        })
+      };
+      datalog('db.responses', undefined, undefined,['status:500'])
+    })
+};
