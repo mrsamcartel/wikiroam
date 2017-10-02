@@ -1,25 +1,31 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
-import { HttpModule }    from '@angular/http';
+import { HttpClientModule }    from '@angular/common/http';
+import { FormsModule }   from '@angular/forms';
 
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {MatCardModule} from '@angular/material';
+import { MatCardModule, MatButtonModule, MatInputModule } from '@angular/material';
 
 import { WikipageService } from './services/wikipage.service';
 
 import { AppComponent } from './app.component';
 import { WikipageComponent } from './wikipage/wikipage.component';
+import { WikipageSearchComponent } from './wikipage-search/wikipage-search.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    WikipageComponent
+    WikipageComponent,
+    WikipageSearchComponent
   ],
   imports: [
     BrowserModule,
-    HttpModule,
+    FormsModule,
+    HttpClientModule,
     BrowserAnimationsModule,
-    MatCardModule
+    MatCardModule,
+    MatButtonModule,
+    MatInputModule
   ],
   providers: [WikipageService],
   bootstrap: [AppComponent]

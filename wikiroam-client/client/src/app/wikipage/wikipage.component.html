@@ -1,7 +1,12 @@
-<md-card class="mat-typography" *ngFor="let wikipage of wikipages">
+<md-card>
     <md-card-title>{{wikipage.title}}</md-card-title>
     <md-card-content>
         <p>pageid: {{wikipage.pageid}}</p>
         <p *ngIf="wikipage.id">[id: {{wikipage.id}}]</p>
     </md-card-content>
+    <md-card-actions>
+        <button md-button>FROM</button>
+        <button md-button>TO</button>
+        <button md-button>READ</button>
+  </md-card-actions>
 </md-card>

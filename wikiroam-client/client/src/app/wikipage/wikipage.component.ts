@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 
 import { Wikipage } from '../models/wikipage.model';
-import { WikipageService } from "../services/wikipage.service";
 
 @Component({
   selector: 'wikipage',
@@ -9,13 +8,9 @@ import { WikipageService } from "../services/wikipage.service";
   styleUrls: ['./wikipage.component.css']
 })
 export class WikipageComponent implements OnInit {
-    wikipages: Wikipage[] = [];
+    @Input() wikipage: Wikipage;
 
-    constructor(private wikipageService: WikipageService) { }
+    constructor() { }
 
-    ngOnInit(): void {
-        // this.wikipageService.getWikipages().subscribe(wikipages => this.wikipages = wikipages);
-        this.wikipageService.searchWikipages('example').subscribe(wikipages => this.wikipages = wikipages);
-    }
-
+    ngOnInit() { }
 }

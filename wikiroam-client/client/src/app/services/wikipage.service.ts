@@ -1,40 +1,36 @@
 import { Injectable }    from '@angular/core';
-import { Headers, Http, Response } from '@angular/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { Wikipage } from '../models/wikipage.model';
 
 import { Observable } from 'rxjs/Rx';
 
 // Import RxJs required methods
-import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/catch';
+// import 'rxjs/add/operator/map';
+// import 'rxjs/add/operator/catch';
 
 @Injectable()
 export class WikipageService {
 
-  private headers = new Headers({
-    'Content-Type': 'application/json',
-    "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-    "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
-  });
+  private headers = new HttpHeaders().set('Content-Type', 'application/json; charset=utf-8');
+
   private apiUrl = 'https://3xg1u0qubd.execute-api.us-east-1.amazonaws.com/dev/wikipages'; // URL to web api
 
+  constructor(private http: HttpClient) {}
 
-  constructor(private http: Http) { }
+  getWikipages(): Observable < Wikipage[] > {
+    return this.http.get(this.apiUrl);
+  };
 
-  getWikipages(): Observable<Wikipage[]> {
-    return this.http.get(this.apiUrl)
-               .map((res: Response) => {
-                 return res.json().wikipages as Wikipage[];
-               })
-               .catch((error:any) => Observable.throw(error.json().error || 'Server error'));
-  }
-
-  searchWikipages(word:String): Observable<Wikipage[]> {
-    return this.http.get(`${this.apiUrl}/search/keyword/${word}`)
-               .map((res: Response) => {
-                 return res.json().wikipages as Wikipage[];
-               })
-               .catch((error:any) => Observable.throw(error.json().error || 'Server error'));
-  }
+  searchWikipages(word): Observable < Wikipage[] > {
+    let keyword = word;
+    if (!keyword) {
+      return this.http.get(this.apiUrl + "/search/keyword/test");
+    } else {
+      return this.http.get(this.apiUrl + "/search/keyword/" + keyword);
+    }
+  };
 }
+
+
+

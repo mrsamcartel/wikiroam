@@ -114,9 +114,7 @@ module.exports.list = (event, context, callback) => {
       return callback(null, {
         statusCode: 200,
         headers: headers,
-        body: JSON.stringify({
-          wikipages: data.Items
-        })
+        body: JSON.stringify(data.Items)
       });
     }
   };
@@ -229,9 +227,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
   var search_params = {
     method: 'GET',
     uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=info&generator=search&gsrnamespace=0&gsrsearch=${word}`,
-    headers: {
-      'User-Agent': 'Wikiroam'
-    },
+    headers: headers,
     json: true // Automatically parses the JSON string in the response
   };
 
@@ -261,7 +257,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
     return callback(null, {
       statusCode: 200,
       headers: headers,
-      body: JSON.stringify({'wikipages': pages})
+      body: JSON.stringify(pages)
     });
   })
   .catch(err => {
@@ -376,7 +372,7 @@ module.exports.searchbypageid = (event, context, callback) => {
       return callback(null, {
         statusCode: 200,
         headers: headers,
-        body: JSON.stringify({'wikipages': data.Items})
+        body: JSON.stringify(data.Items)
       });
     }
   };
