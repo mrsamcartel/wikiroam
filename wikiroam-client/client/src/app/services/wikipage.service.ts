@@ -23,11 +23,10 @@ export class WikipageService {
   };
 
   searchWikipages(word): Observable < Wikipage[] > {
-    let keyword = word;
-    if (!keyword) {
+    if (!word) {
       return this.http.get(this.apiUrl + "/search/keyword/test");
     } else {
-      return this.http.get(this.apiUrl + "/search/keyword/" + keyword);
+      return this.http.get(this.apiUrl + "/search/keyword/" + word);
     }
   };
 }

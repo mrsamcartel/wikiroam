@@ -379,3 +379,94 @@ module.exports.searchbypageid = (event, context, callback) => {
 
   dynamoDb.scan(params, onScan);
 }
+
+// cacheInfo function
+module.exports.cacheInfo = (event, context, callback) => {
+
+  const start_time = new Date().getTime();
+  console.log(`Received cache request event: ${JSON.stringify(event)}`);
+  const title = event.title;
+  const pageid = event.pageid;
+
+  if (typeof title !== 'string' || typeof pageid !== 'number') {
+    console.error('Validation Failed');
+    callback(new Error('Couldn\'t cache wikipage because of validation errors.'));
+    return;
+  }
+
+  var params = {
+    TableName : process.env.WIKIPAGE_TABLE,
+    IndexName: process.env.WIKIPAGE_TABLE_INDEX,
+    FilterExpression: 'pageid = :pageid',
+    ExpressionAttributeValues: { ':pageid': pageid },
+    ProjectionExpression: "id, pageid, title"
+  };
+
+  console.log(`Scanning for Wikipage item with pageid: ${pageid}.`);
+  datalog('db.queries.scan');
+
+  const onScan = (err, data) => {
+    if (err || data.Count == 0) {
+      console.log(`No match for pageid "${pageid}". Error is: ${JSON.stringify(err)}`);
+      datalog('db.responses', undefined, undefined, ['status:400']);
+
+      //Adding to cache
+      submitWikipageP(wikipageInfo(pageid, title))
+        .then(res => {
+          const response = {
+            statusCode: 200,
+            headers: headers,
+            body: {
+              message: `Sucessfully cached wikipage with pageid ${pageid} and title ${title}`,
+              title: title,
+              pageid: pageid,
+              id: res.id
+            }
+          }
+          datalog('db.responses', undefined, undefined, ['status:200']);
+          datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
+          return callback(null, response);
+        })
+        .catch(err => {
+          console.log(err);
+          const response = {
+            statusCode: 500,
+            headers: headers,
+            body: JSON.stringify({
+              message: `Unable to cache candidate with pageid ${pageid} and title ${title}`
+            })
+          };
+          datalog('db.responses', undefined, undefined, ['status:500'])
+          return callback(response, null);
+        })
+
+    } else {
+      //TODO check if cache needs to be refreshed
+      console.log(`Found a match for pageid "${pageid}". Data is: ${JSON.stringify(data)}`);
+      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
+      return callback(null, {
+        statusCode: 500,
+        headers: headers,
+        body: JSON.stringify(`Found a match for pageid: ${pageid}`)
+      });
+    }
+  };
+
+  dynamoDb.scan(params, onScan);
+};
+
+//cacheBacklinks function
+module.exports.cacheBacklinks  = (event, context, callback) => {
+  console.log(`cachebacklinks - logging event: ${JSON.stringify(event)}`);
+  console.log(`cachebacklinks - logging context: ${JSON.stringify(context)}`);
+  console.log('Returning event in body')
+  return callback(null, {
+        statusCode: 200,
+        headers: headers,
+        body: {
+          message: 'Returning event in body',
+          event: event.body
+        }
+      });
+};

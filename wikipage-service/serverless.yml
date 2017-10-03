@@ -87,6 +87,10 @@ functions:
     description: Cache a wikipage from SNS cacheWikipage topic
     events:
       - sns: cacheWikipage
+  cacheInfo:
+    handler: api/wikipages.cacheInfo
+  cacheBacklinks:
+    handler: api/wikipages.cacheBacklinks
 
 resources:
   Resources:
@@ -118,3 +122,27 @@ resources:
         StreamSpecification:
           StreamViewType: "NEW_AND_OLD_IMAGES"
         TableName: ${self:provider.environment.WIKIPAGE_TABLE}
+
+stepFunctions:
+  stateMachines:
+    cacheFunction:
+      events:
+        - http:
+            path: cache
+            method: POST
+      definition:
+        Comment: "Caching logic triggered when a wikipage is first searched"
+        StartAt: cacheInfo
+        States:
+          cacheInfo:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheInfo"
+            Next: cacheBacklinks
+          cacheBacklinks:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheBacklinks"
+            End: true
+
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
