@@ -202,7 +202,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
 
   var search_params = {
     method: 'GET',
-    uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&srnamespace=0&list=search&srlimit=10&srprop=snippet&srsearch=${word}`,
+    uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&srnamespace=0&list=search&srlimit=12&srprop=snippet&srsearch=${word}`,
     headers: headers,
     json: true // Automatically parses the JSON string in the response
   };

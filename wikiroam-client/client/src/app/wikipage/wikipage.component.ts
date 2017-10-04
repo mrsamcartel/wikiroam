@@ -13,4 +13,11 @@ export class WikipageComponent implements OnInit {
     constructor() { }
 
     ngOnInit() { }
+
+    click(pageid: number) {
+      window.open(
+      `https://en.wikipedia.org/?curid=${pageid}`,
+      '_blank'
+    );
+    }
 }

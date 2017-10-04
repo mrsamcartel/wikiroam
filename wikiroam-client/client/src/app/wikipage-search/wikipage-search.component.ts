@@ -12,7 +12,7 @@ import 'rxjs/add/operator/switchMap';
 @Component({
   selector: 'wikipage-search',
   templateUrl: './wikipage-search.component.html',
-  styleUrls: ['./wikipage-search.component.css']
+  styleUrls: ['./wikipage-search.component.scss']
 })
 export class WikipageSearchComponent implements OnInit {
     private searchTerms = new Subject<string>();

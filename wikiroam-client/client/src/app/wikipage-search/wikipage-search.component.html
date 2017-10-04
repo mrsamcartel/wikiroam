@@ -3,6 +3,6 @@
     <input #searchBox mdInput id="search-box" placeholder="Search" (keyup)="search(searchBox.value)">
   </md-form-field>
 </form>
-<section class="mat-typography" *ngFor="let wikipage of wikipages | async">
-    <wikipage [wikipage]='wikipage'></wikipage>
+<section class="mat-typography wikipage-card-container">
+    <wikipage *ngFor="let wikipage of wikipages | async" [wikipage]='wikipage'></wikipage>
 </section>

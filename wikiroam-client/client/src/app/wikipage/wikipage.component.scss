@@ -1,5 +1,19 @@
-.wikipage-snippet {
-    /deep/ .searchmatch { 
-        color: #2196f3;
+// .wikipage-card {
+
+    .mat-card {
+        margin: 0 16px 16px 0;
+        width: 350px;
+
+        .mat-card-actions {
+            display: flex;
+            flex-direction: row;
+        }
     }
-}
+
+    .wikipage-snippet {
+        /deep/ .searchmatch { 
+            color: #2196f3;
+        }
+    }
+
+// }

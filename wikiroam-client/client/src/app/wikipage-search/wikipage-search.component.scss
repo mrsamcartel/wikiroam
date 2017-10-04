@@ -1,0 +1,6 @@
+.wikipage-card-container {
+    display: flex;
+    // flex-flow: column nowrap;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
