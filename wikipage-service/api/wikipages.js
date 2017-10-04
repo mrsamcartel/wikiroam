@@ -37,12 +37,35 @@ const submitWikipageP = wikipage => {
     .then(res => wikipage);
 };
 
+const submitWikilinkP = wikilink => {
+  console.log('Submitting wikilink');
+  datalog('db.queries.put');
+  const wikilinkInfo = {
+    TableName: process.env.WIKILINK_TABLE,
+    Item: wikilink,
+  };
+  return dynamoDb.put(wikilinkInfo).promise()
+    .then(res => wikilink);
+}
+
 const wikipageInfo = (pageid, title) => {
   const timestamp = new Date().getTime();
   return {
     id: uuid.v1(),
     title: title,
     pageid: pageid,
+    submitted_at: timestamp,
+    updated_at: timestamp,
+  };
+};
+
+const wikilinkInfo = (fromid, fromtitle, toid, totitle) => {
+  const timestamp = new Date().getTime();
+  return {
+    fromid: fromid,
+    fromtitle: fromtitle,
+    toid: toid,
+    totitle: totitle,
     submitted_at: timestamp,
     updated_at: timestamp,
   };
@@ -341,19 +364,55 @@ module.exports.cacheInfo = (event, context, callback) => {
 module.exports.cacheBacklinks = (event, context, callback) => {
   const start_time = new Date().getTime();
   console.log(`Starting cacheBacklinks`);
-  const title = event.body.title;
-  const pageid = event.body.pageid;
-  const id = event.body.id;
+  const totitle = event.body.title;
+  const toid = event.body.pageid;
 
-  console.log(`cachebacklinks - logging event: ${JSON.stringify(event)}`);
-  return callback(null, {
-    statusCode: 200,
+  console.log("Searching Wikipedia for backlinks.");
+  datalog('search.queries');
+
+  var search_params = {
+    method: 'GET',
+    uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&blnamespace=0&lhlimit=500&list=backlinks&blpageid=${toid}`,
     headers: headers,
-    body: {
-      message: `Sucessfully cached backlinks for wikipage with pageid ${pageid} and title ${title}`,
-      title: title,
-      pageid: pageid,
-      id: id
-    }
-  });
+    json: true // Automatically parses the JSON string in the response
+  };
+
+  rp(search_params)
+    .then(res => {
+      console.log("Search succeeded.");
+      datalog('search.responses', undefined, undefined, ['status:200']);
+      datalog('search.latency', 'histogram', (new Date().getTime()) - start_time);
+
+      // Cache backlinks returned directly from wikipedia API
+      var wikilinks = [];
+      var wikilink;
+      var link;
+      for (let key in res.query.backlinks) {
+        link = res.query.backlinks[key];
+        wikilink = wikilinkInfo(link.pageid, link.title, toid, totitle);
+        wikilinks.push(wikilink);
+      }
+      return wikilinks;
+    })
+    .map(wikilink => {
+      console.log(`Submitting wikilink: ${JSON.stringify(wikilink)}`);
+      submitWikilinkP(wikilink);
+    })
+    .then( res => {
+      console.log(`cachebacklinks end`);
+      return callback(null, {
+        statusCode: 200,
+        headers: headers,
+        body: {
+          message: `Sucessfully cached backlinks for wikipage with pageid ${toid} and title ${totitle}`,
+          title: totitle,
+          pageid: toid,
+        }
+      });
+    })
+    .catch(err => {
+      console.log('Search failed to return data. Error JSON:', err);
+      datalog('search.responses', undefined, undefined, ['status:500']);
+      callback(err);
+    });
 };

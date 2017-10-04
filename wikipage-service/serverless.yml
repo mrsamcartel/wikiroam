@@ -8,6 +8,8 @@ provider:
   environment:
     WIKIPAGE_TABLE: "${self:service}-${opt:stage, self:provider.stage}"
     WIKIPAGE_TABLE_INDEX: "${self:provider.environment.WIKIPAGE_TABLE}-pageid-index"
+    WIKILINK_TABLE: "wikilink-${opt:stage, self:provider.stage}"
+    WIKILINK_TABLE_INDEX: "${self:provider.environment.WIKILINK_TABLE}-toid-index"
     LOG_PREFIX: "${self:service}"
     STAGE: "${opt:stage, self:provider.stage}"
     SERVICE: "${self:service}"
@@ -173,6 +175,34 @@ resources:
         StreamSpecification:
           StreamViewType: "NEW_AND_OLD_IMAGES"
         TableName: ${self:provider.environment.WIKIPAGE_TABLE}
+    WikilinksDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "fromid"
+            AttributeType: "N"
+          - AttributeName: "toid"
+            AttributeType: "N"
+        KeySchema:
+          - AttributeName: "fromid"
+            KeyType: "HASH"
+        GlobalSecondaryIndexes:
+          - IndexName: ${self:provider.environment.WIKIPAGE_TABLE_INDEX}
+            KeySchema:
+              - AttributeName: "toid"
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        StreamSpecification:
+          StreamViewType: "NEW_AND_OLD_IMAGES"
+        TableName: ${self:provider.environment.WIKILINK_TABLE}
   Outputs:
     CacheFunc:
       Description: The ARN of the state machine
