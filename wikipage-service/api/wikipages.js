@@ -10,13 +10,14 @@ const rp = require('request-promise');
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const sns = new AWS.SNS();
+const stepFunctions = new AWS.StepFunctions();
 
 const headers = {
   "Access-Control-Allow-Origin": "*", // Required for CORS support to work
   "Access-Control-Allow-Credentials": true // Required for cookies, authorization headers with HTTPS
 }
 
-const datalog = (metric_name, metric_type='count', metric_value=1, tags=[]) => {
+const datalog = (metric_name, metric_type = 'count', metric_value = 1, tags = []) => {
   // MONITORING|unix_epoch_timestamp|metric_value|metric_type|my.metric.name|#tag1:value,tag2
   const timestamp = new Date().getTime();
   tags.push(`service:${process.env.SERVICE}`);
@@ -24,49 +25,6 @@ const datalog = (metric_name, metric_type='count', metric_value=1, tags=[]) => {
   var log_entry = `MONITORING|${timestamp}|${metric_value}|${metric_type}|${process.env.LOG_PREFIX}.${metric_name}|#${tags.join(',')}`;
   console.log(log_entry);
 }
-
-// wikipagesSubmit function
-//TODO: Refactor to align structure with other functions within the service
-module.exports.submit = (event, context, callback) => {
-  const start_time = new Date().getTime();
-  const requestBody = JSON.parse(event.body);
-  const title = requestBody.title;
-  const pageid = requestBody.pageid;
-
-  if (typeof title !== 'string' || typeof pageid !== 'number') {
-    console.error('Validation Failed');
-    callback(new Error('Couldn\'t submit wikipage because of validation errors.'));
-    return;
-  }
-
-  //TODO: Avoid storing duplicate pageids; retrieve id and updateItem instead
-  submitWikipageP(wikipageInfo(pageid, title))
-    .then(res => {
-      const response = {
-        statusCode: 200,
-        headers: headers,
-        body: JSON.stringify({
-          message: `Sucessfully submitted wikipage with pageid ${pageid} and title ${title}`,
-          wikipageId: res.id
-        })
-      }
-      datalog('db.responses', undefined, undefined,['status:200']);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
-      callback(null, response);
-    })
-    .catch(err => {
-      console.log(err);
-      const response = {
-        statusCode: 500,
-        headers: headers,
-        body: JSON.stringify({
-          message: `Unable to submit candidate with pageid ${pageid} and title ${title}`
-        })
-      };
-      datalog('db.responses', undefined, undefined,['status:500'])
-      callback(null, response);
-    })
-};
 
 const submitWikipageP = wikipage => {
   console.log('Submitting wikipage');
@@ -104,13 +62,13 @@ module.exports.list = (event, context, callback) => {
   const onScan = (err, data) => {
     if (err) {
       console.log('Scan failed to load data. Error JSON:', JSON.stringify(err, null, 2));
-      datalog('db.responses', undefined, undefined,['status:500'])
+      datalog('db.responses', undefined, undefined, ['status:500'])
       callback(err);
     } else {
       console.log("Scan succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200']);
+      datalog('db.responses', undefined, undefined, ['status:200']);
       datalog('db.scan_count', 'histogram', data.Count);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
+      datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
       return callback(null, {
         statusCode: 200,
         headers: headers,
@@ -135,7 +93,7 @@ module.exports.get = (event, context, callback) => {
 
   var params = {
     TableName: process.env.WIKIPAGE_TABLE,
-    Key : { 
+    Key: {
       id: id,
     },
   }
@@ -146,12 +104,12 @@ module.exports.get = (event, context, callback) => {
   const onGet = (err, data) => {
     if (err) {
       console.log('Get failed to load data. Error JSON:', JSON.stringify(err, null, 2));
-      datalog('db.responses', undefined, undefined,['status:500'])
+      datalog('db.responses', undefined, undefined, ['status:500'])
       callback(err);
     } else {
       console.log("Get succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200']);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
+      datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
       return callback(null, {
         statusCode: 200,
         headers: headers,
@@ -163,60 +121,55 @@ module.exports.get = (event, context, callback) => {
   dynamoDb.get(params, onGet);
 }
 
-// wikipagesUpdate function
-module.exports.update = (event, context, callback) => {
+// wikipagesSearchByPageid function
+module.exports.searchbypageid = (event, context, callback) => {
   const start_time = new Date().getTime();
-  const id = event.pathParameters.id;
+  const pageid = parseInt(event.pathParameters.pageid);
 
-  if (typeof id !== 'string') {
+  if (typeof pageid !== 'number') {
     console.error('Validation Failed');
-    callback(new Error('Couldn\'t update wikipage because of validation errors.'));
+    callback(new Error('Couldn\'t get wikipage because of validation errors.'));
     return;
   }
 
-  const data = JSON.parse(event.body);
-  const timestamp = new Date().getTime();
-  data.updatedAt = timestamp;
-
-  //TODO: Handle missing attributes in request. Right now they'd cause an error in DynamoDB.update
   var params = {
     TableName: process.env.WIKIPAGE_TABLE,
-    Key : { 
-      id: id,
-    },
+    IndexName: process.env.WIKIPAGE_TABLE_INDEX,
+    FilterExpression: 'pageid = :pageid',
     ExpressionAttributeValues: {
-      ':title': data.title,
-      ':pageid': data.pageid,
-      ':updatedAt': timestamp,
+      ':pageid': pageid
     },
-    UpdateExpression: 'SET title = :title, pageid = :pageid, updatedAt = :updatedAt',
-    ReturnValues: 'ALL_NEW',
-  }
+    ProjectionExpression: "id, pageid, title"
+  };
 
-  console.log(`Updating Wikipage item with id: ${id}.`);
-  datalog('db.queries.update');
+  console.log(`Getting Wikipage item with pageid: ${pageid}.`);
+  datalog('db.queries.scan');
 
-  const onUpdate = (err, data) => {
-    if (err) {
-      console.log('Put failed to update data. Error JSON:', JSON.stringify(err, null, 2));
-      datalog('db.responses', undefined, undefined,['status:500'])
-      callback(err);
+  const onScan = (err, data) => {
+    if (err || data.Count == 0) {
+      console.log(`No wikipage found with pageid: ${pageid}`);
+      datalog('db.responses', undefined, undefined, ['status:400'])
+      return callback(null, {
+        statusCode: 400,
+        headers: headers,
+        body: JSON.stringify(`No wikipage found with pageid: ${pageid}`)
+      });
     } else {
-      console.log("Put succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200']);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
+      console.log("Scan succeeded.");
+      datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
       return callback(null, {
         statusCode: 200,
         headers: headers,
-        body: JSON.stringify(data.Attributes),
+        body: JSON.stringify(data.Items)
       });
     }
   };
 
-  dynamoDb.update(params, onUpdate);
+  dynamoDb.scan(params, onScan);
 }
 
-// wikipagesSearch function
+// wikipagesSearchByKeyword function
 module.exports.searchbykeyword = (event, context, callback) => {
   const start_time = new Date().getTime();
   const word = event.pathParameters.word;
@@ -232,42 +185,43 @@ module.exports.searchbykeyword = (event, context, callback) => {
   };
 
   rp(search_params)
-  .then(res => {
-    
-    var pages = [];
-    for (let key in res.query.pages) {
-      let page = res.query.pages[key];
-      pages.push(page);
-      var params = {
-        Message: `${JSON.stringify(page)}`,
-        TopicArn: `arn:aws:sns:us-east-1:${config.awsAccountId}:cacheWikipage`
-      };
-      console.log(`Publishing SNS message: ${params.Message}`);
-      sns.publish(params, function(err, data) {
-        if (err) console.log(err, err.stack);
-        else     console.log(data);
+    .then(res => {
+
+      // Start caching pipeline for results returned directly from wikipedia API
+      var pages = [];
+      for (let key in res.query.pages) {
+        let page = res.query.pages[key];
+        pages.push(page);
+        var params = {
+          Message: `${JSON.stringify(page)}`,
+          TopicArn: `arn:aws:sns:us-east-1:${config.awsAccountId}:cacheWikipage`
+        };
+        console.log(`Publishing SNS message: ${params.Message}`);
+        sns.publish(params, function (err, data) {
+          if (err) console.log(err, err.stack);
+          else console.log(data);
+        });
+      }
+
+      console.log("Search succeeded.");
+      console.log(`returned data: ${JSON.stringify(pages)}`);
+      datalog('search.responses', undefined, undefined, ['status:200']);
+      datalog('search.latency', 'histogram', (new Date().getTime()) - start_time);
+
+      return callback(null, {
+        statusCode: 200,
+        headers: headers,
+        body: JSON.stringify(pages)
       });
-    }
-
-    console.log("Search succeeded.");
-    console.log(`returned data: ${JSON.stringify(pages)}`);
-    datalog('search.responses', undefined, undefined,['status:200']);
-    datalog('search.latency', 'histogram', (new Date().getTime())-start_time);
-
-    return callback(null, {
-      statusCode: 200,
-      headers: headers,
-      body: JSON.stringify(pages)
+    })
+    .catch(err => {
+      console.log('Search failed to return data. Error JSON:', err);
+      datalog('search.responses', undefined, undefined, ['status:500']);
+      callback(err);
     });
-  })
-  .catch(err => {
-    console.log('Search failed to return data. Error JSON:', err);
-    datalog('search.responses', undefined, undefined,['status:500']);
-    callback(err);
-  });
 }
 
-// wikipagesCache function
+// wikipagesCache function -- Proxy for caching StepFunction triggered through SNS
 module.exports.cache = (event) => {
   const start_time = new Date().getTime();
   console.log(`Received cacheWikipage event: ${JSON.stringify(event)}`);
@@ -275,113 +229,21 @@ module.exports.cache = (event) => {
   const title = message.title;
   const pageid = message.pageid;
 
-  if (typeof title !== 'string' || typeof pageid !== 'number') {
-    console.error('Validation Failed');
-    callback(new Error('Couldn\'t cache wikipage because of validation errors.'));
-    return;
-  }
-
-  var params = {
-    TableName : process.env.WIKIPAGE_TABLE,
-    IndexName: process.env.WIKIPAGE_TABLE_INDEX,
-    FilterExpression: 'pageid = :pageid',
-    ExpressionAttributeValues: { ':pageid': pageid },
-    ProjectionExpression: "id, pageid, title"
+  const params = {
+    stateMachineArn: process.env.STATEMACHINE_ARN,
+    input: JSON.stringify({
+      title: title,
+      pageid: pageid
+    })
   };
-
-  console.log(`Scanning for Wikipage item with pageid: ${pageid}.`);
-  datalog('db.queries.scan');
-
-  const onScan = (err, data) => {
-    if (err || data.Count == 0) {
-      console.log(`No match for pageid "${pageid}". Error is: ${JSON.stringify(err)}`);
-      datalog('db.responses', undefined, undefined, ['status:400']);
-
-      //Adding to cache
-      submitWikipageP(wikipageInfo(pageid, title))
-        .then(res => {
-          const response = {
-            statusCode: 200,
-            headers: headers,
-            body: JSON.stringify({
-              message: `Sucessfully cached wikipage with pageid ${pageid} and title ${title}`,
-              wikipageId: res.id
-            })
-          }
-          datalog('db.responses', undefined, undefined, ['status:200']);
-          datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
-        })
-        .catch(err => {
-          console.log(err);
-          const response = {
-            statusCode: 500,
-            headers: headers,
-            body: JSON.stringify({
-              message: `Unable to cache candidate with pageid ${pageid} and title ${title}`
-            })
-          };
-          datalog('db.responses', undefined, undefined, ['status:500'])
-        })
-
-    } else {
-      //TODO check if cache needs to be refreshed
-      console.log(`Found a match for pageid "${pageid}". Data is: ${JSON.stringify(data)}`);
-      datalog('db.responses', undefined, undefined,['status:200']);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
-    }
-  };
-
-  dynamoDb.scan(params, onScan);
+  stepFunctions.startExecution(params, function(err, data) { 
+    if (err) console.log(err, err.stack); // an error occurred 
+    else console.log(data); // successful response 
+  });
 };
 
-// wikipagesGetByPageid function
-module.exports.searchbypageid = (event, context, callback) => {
-  const start_time = new Date().getTime();
-  const pageid = parseInt(event.pathParameters.pageid);
-
-  if (typeof pageid !== 'number') {
-    console.error('Validation Failed');
-    callback(new Error('Couldn\'t get wikipage because of validation errors.'));
-    return;
-  }
-
-  var params = {
-    TableName : process.env.WIKIPAGE_TABLE,
-    IndexName: process.env.WIKIPAGE_TABLE_INDEX,
-    FilterExpression: 'pageid = :pageid',
-    ExpressionAttributeValues: { ':pageid': pageid },
-    ProjectionExpression: "id, pageid, title"
-  };
-
-  console.log(`Getting Wikipage item with pageid: ${pageid}.`);
-  datalog('db.queries.scan');
-
-  const onScan = (err, data) => {
-    if (err || data.Count == 0) {
-      console.log(`No wikipage found with pageid: ${pageid}`);
-      datalog('db.responses', undefined, undefined,['status:400'])
-      return callback(null, {
-        statusCode: 400,
-        headers: headers,
-        body: JSON.stringify(`No wikipage found with pageid: ${pageid}`)
-      });
-    } else {
-      console.log("Scan succeeded.");
-      datalog('db.responses', undefined, undefined,['status:200']);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
-      return callback(null, {
-        statusCode: 200,
-        headers: headers,
-        body: JSON.stringify(data.Items)
-      });
-    }
-  };
-
-  dynamoDb.scan(params, onScan);
-}
-
-// cacheInfo function
-module.exports.cacheInfo = (event, context, callback) => {
+// cacheStart function
+module.exports.cacheStart = (event, context, callback) => {
 
   const start_time = new Date().getTime();
   console.log(`Received cache request event: ${JSON.stringify(event)}`);
@@ -395,10 +257,12 @@ module.exports.cacheInfo = (event, context, callback) => {
   }
 
   var params = {
-    TableName : process.env.WIKIPAGE_TABLE,
+    TableName: process.env.WIKIPAGE_TABLE,
     IndexName: process.env.WIKIPAGE_TABLE_INDEX,
     FilterExpression: 'pageid = :pageid',
-    ExpressionAttributeValues: { ':pageid': pageid },
+    ExpressionAttributeValues: {
+      ':pageid': pageid
+    },
     ProjectionExpression: "id, pageid, title"
   };
 
@@ -406,49 +270,30 @@ module.exports.cacheInfo = (event, context, callback) => {
   datalog('db.queries.scan');
 
   const onScan = (err, data) => {
-    if (err || data.Count == 0) {
-      console.log(`No match for pageid "${pageid}". Error is: ${JSON.stringify(err)}`);
-      datalog('db.responses', undefined, undefined, ['status:400']);
-
-      //Adding to cache
-      submitWikipageP(wikipageInfo(pageid, title))
-        .then(res => {
-          const response = {
-            statusCode: 200,
-            headers: headers,
-            body: {
-              message: `Sucessfully cached wikipage with pageid ${pageid} and title ${title}`,
-              title: title,
-              pageid: pageid,
-              id: res.id
-            }
-          }
-          datalog('db.responses', undefined, undefined, ['status:200']);
-          datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
-          return callback(null, response);
-        })
-        .catch(err => {
-          console.log(err);
-          const response = {
-            statusCode: 500,
-            headers: headers,
-            body: JSON.stringify({
-              message: `Unable to cache candidate with pageid ${pageid} and title ${title}`
-            })
-          };
-          datalog('db.responses', undefined, undefined, ['status:500'])
-          return callback(response, null);
-        })
-
+    if (err) {
+      return callback(err);
+    } else if (data.Count == 0) {
+      console.log(`No match for pageid "${pageid}".`);
+      datalog('db.responses', undefined, undefined, ['status:200']);
+      return callback(null, {
+        statusCode: 200,
+        headers: headers,
+        body: {
+          pageid: pageid,
+          title: title
+        },
+        cache: true
+      });
     } else {
       //TODO check if cache needs to be refreshed
       console.log(`Found a match for pageid "${pageid}". Data is: ${JSON.stringify(data)}`);
-      datalog('db.responses', undefined, undefined,['status:200']);
-      datalog('db.latency', 'histogram', (new Date().getTime())-start_time);
+      datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
       return callback(null, {
-        statusCode: 500,
+        statusCode: 200,
         headers: headers,
-        body: JSON.stringify(`Found a match for pageid: ${pageid}`)
+        body: JSON.stringify(`Existing match found for ${pageid}. No need to cache`),
+        cache: false
       });
     }
   };
@@ -456,17 +301,59 @@ module.exports.cacheInfo = (event, context, callback) => {
   dynamoDb.scan(params, onScan);
 };
 
-//cacheBacklinks function
-module.exports.cacheBacklinks  = (event, context, callback) => {
-  console.log(`cachebacklinks - logging event: ${JSON.stringify(event)}`);
-  console.log(`cachebacklinks - logging context: ${JSON.stringify(context)}`);
-  console.log('Returning event in body')
-  return callback(null, {
+// cacheInfo function
+module.exports.cacheInfo = (event, context, callback) => {
+  const start_time = new Date().getTime();
+  console.log(`Starting cacheInfo`);
+  const title = event.body.title;
+  const pageid = event.body.pageid;
+
+  //Adding to cache
+  submitWikipageP(wikipageInfo(pageid, title))
+    .then(res => {
+      datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
+      return callback(null, {
         statusCode: 200,
         headers: headers,
         body: {
-          message: 'Returning event in body',
-          event: event.body
+          message: `Sucessfully cached info for wikipage with pageid ${pageid} and title ${title}`,
+          title: title,
+          pageid: pageid,
+          id: res.id
         }
       });
+    })
+    .catch(err => {
+      console.log(err);
+      datalog('db.responses', undefined, undefined, ['status:500'])
+      return callback({
+        statusCode: 500,
+        headers: headers,
+        body: JSON.stringify({
+          message: `Unable to cache candidate with pageid ${pageid} and title ${title}`
+        })
+      }, null);
+    })
+};
+
+//cacheBacklinks function
+module.exports.cacheBacklinks = (event, context, callback) => {
+  const start_time = new Date().getTime();
+  console.log(`Starting cacheBacklinks`);
+  const title = event.body.title;
+  const pageid = event.body.pageid;
+  const id = event.body.id;
+
+  console.log(`cachebacklinks - logging event: ${JSON.stringify(event)}`);
+  return callback(null, {
+    statusCode: 200,
+    headers: headers,
+    body: {
+      message: `Sucessfully cached backlinks for wikipage with pageid ${pageid} and title ${title}`,
+      title: title,
+      pageid: pageid,
+      id: id
+    }
+  });
 };

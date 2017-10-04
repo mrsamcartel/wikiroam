@@ -11,6 +11,7 @@ provider:
     LOG_PREFIX: "${self:service}"
     STAGE: "${opt:stage, self:provider.stage}"
     SERVICE: "${self:service}"
+    STATEMACHINE_ARN: "${self:resources.Outputs.CacheFunc.Value}"
   tags:
     stage: "${opt:stage, self:provider.stage}"
     service: "${self:service}"
@@ -24,18 +25,19 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
         - "sns:*"
+        - "states:StartExecution"
       Resource: "*"
 
 functions:
-  wikipagesSubmit:
-    handler: api/wikipages.submit
-    memorySize: 128
-    description: Store a wikipage to DB.
-    events:
-      - http:
-          path: wikipages
-          method: post
-          cors: true
+  # wikipagesSubmit:
+  #   handler: api/wikipages.submit
+  #   memorySize: 128
+  #   description: Store a wikipage to DB.
+  #   events:
+  #     - http:
+  #         path: wikipages
+  #         method: post
+  #         cors: true
   wikipagesList:
     handler: api/wikipages.list
     memorySize: 128
@@ -54,15 +56,15 @@ functions:
           path: wikipages/{id}
           method: get
           cors: true
-  wikipagesUpdate:
-    handler: api/wikipages.update
-    memorySize: 128
-    description: Update a wikipage by id.
-    events:
-      - http:
-          path: wikipages/{id}
-          method: put
-          cors: true
+  # wikipagesUpdate:
+  #   handler: api/wikipages.update
+  #   memorySize: 128
+  #   description: Update a wikipage by id.
+  #   events:
+  #     - http:
+  #         path: wikipages/{id}
+  #         method: put
+  #         cors: true
   wikipagesSearchByKeyword:
     handler: api/wikipages.searchbykeyword
     memorySize: 128
@@ -72,25 +74,74 @@ functions:
           path: wikipages/search/keyword/{word}
           method: get
           cors: true
-  wikipagesGetByPageid:
-    handler: api/wikipages.searchbypageid
-    memorySize: 128
-    description: Get a wikipage by pageid.
-    events:
-      - http:
-          path: wikipages/search/pageid/{pageid}
-          method: get
-          cors: true
+  # wikipagesSearchByPageid:
+  #   handler: api/wikipages.searchbypageid
+  #   memorySize: 128
+  #   description: Get a wikipage by pageid.
+  #   events:
+  #     - http:
+  #         path: wikipages/search/pageid/{pageid}
+  #         method: get
+  #         cors: true
   wikipagesCache:
     handler: api/wikipages.cache
     memorySize: 128
     description: Cache a wikipage from SNS cacheWikipage topic
     events:
       - sns: cacheWikipage
+  cacheStart:
+    handler: api/wikipages.cacheStart
+    memorySize: 128
+    description: Part of Caching step function
   cacheInfo:
     handler: api/wikipages.cacheInfo
+    memorySize: 128
+    description: Part of Caching step function
   cacheBacklinks:
     handler: api/wikipages.cacheBacklinks
+    memorySize: 128
+    description: Part of Caching step function
+
+stepFunctions:
+  stateMachines:
+    cacheFunction:
+      name: cacheFunc
+      events:
+        - http:
+            path: cache
+            method: POST
+      definition:
+        Comment: "Caching logic triggered when a wikipage is first searched"
+        StartAt: cacheStart
+        States:
+          cacheStart:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheStart"
+            Next: cacheChoice
+          cacheChoice:
+            Type: Choice
+            Choices:
+              - Variable: "$.cache"
+                BooleanEquals: false
+                Next: cacheEnd
+              - Variable: "$.cache"
+                BooleanEquals: true
+                Next: cacheInfo
+            Default: cacheFail
+          cacheInfo:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheInfo"
+            Next: cacheBacklinks
+          cacheBacklinks:
+            Type: Task
+            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheBacklinks"
+            Next: cacheEnd
+          cacheEnd:
+            Type: Succeed
+          cacheFail:
+            Type: Fail
+            Error: "CacheFailed"
+            Cause: "Unknown Error"
 
 resources:
   Resources:
@@ -122,26 +173,11 @@ resources:
         StreamSpecification:
           StreamViewType: "NEW_AND_OLD_IMAGES"
         TableName: ${self:provider.environment.WIKIPAGE_TABLE}
-
-stepFunctions:
-  stateMachines:
-    cacheFunction:
-      events:
-        - http:
-            path: cache
-            method: POST
-      definition:
-        Comment: "Caching logic triggered when a wikipage is first searched"
-        StartAt: cacheInfo
-        States:
-          cacheInfo:
-            Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheInfo"
-            Next: cacheBacklinks
-          cacheBacklinks:
-            Type: Task
-            Resource: "arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${opt:stage}-cacheBacklinks"
-            End: true
+  Outputs:
+    CacheFunc:
+      Description: The ARN of the state machine
+      Value:
+        Ref: CacheFunc
 
 plugins:
   - serverless-step-functions
