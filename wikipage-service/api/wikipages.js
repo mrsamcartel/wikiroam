@@ -202,7 +202,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
 
   var search_params = {
     method: 'GET',
-    uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=info&generator=search&gsrnamespace=0&gsrsearch=${word}`,
+    uri: `https://en.wikipedia.org/w/api.php?action=query&format=json&srnamespace=0&list=search&srlimit=10&srprop=snippet&srsearch=${word}`,
     headers: headers,
     json: true // Automatically parses the JSON string in the response
   };
@@ -212,8 +212,8 @@ module.exports.searchbykeyword = (event, context, callback) => {
 
       // Start caching pipeline for results returned directly from wikipedia API
       var pages = [];
-      for (let key in res.query.pages) {
-        let page = res.query.pages[key];
+      for (let key in res.query.search) {
+        let page = res.query.search[key];
         pages.push(page);
         var params = {
           Message: `${JSON.stringify(page)}`,

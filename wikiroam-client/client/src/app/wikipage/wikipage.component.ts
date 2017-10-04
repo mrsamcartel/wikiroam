@@ -5,7 +5,7 @@ import { Wikipage } from '../models/wikipage.model';
 @Component({
   selector: 'wikipage',
   templateUrl: './wikipage.component.html',
-  styleUrls: ['./wikipage.component.css']
+  styleUrls: ['./wikipage.component.scss']
 })
 export class WikipageComponent implements OnInit {
     @Input() wikipage: Wikipage;

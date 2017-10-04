@@ -9,12 +9,15 @@ import { MatCardModule, MatButtonModule, MatInputModule } from '@angular/materia
 import { WikipageService } from './services/wikipage.service';
 
 import { AppComponent } from './app.component';
+import { SafePipe } from './safe.pipe';
+
 import { WikipageComponent } from './wikipage/wikipage.component';
 import { WikipageSearchComponent } from './wikipage-search/wikipage-search.component';
 
 @NgModule({
   declarations: [
     AppComponent,
+    SafePipe,
     WikipageComponent,
     WikipageSearchComponent
   ],
