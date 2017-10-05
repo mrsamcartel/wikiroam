@@ -272,7 +272,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
         pages.push(page);
         var params = {
           Message: `${JSON.stringify(page)}`,
-          TopicArn: `arn:aws:sns:us-east-1:${config.awsAccountId}:cacheWikipage`
+          TopicArn: `arn:aws:sns:us-east-1:${config.awsAccountId}:${process.env.SERVICE}-${process.env.STAGE}-cacheWikipage`
         };
         console.log(`Publishing SNS message: ${params.Message}`);
         sns.publish(params, function (err, data) {

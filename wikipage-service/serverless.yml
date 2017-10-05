@@ -81,7 +81,7 @@ functions:
     memorySize: 128
     description: Cache a wikipage from SNS cacheWikipage topic
     events:
-      - sns: cacheWikipage
+      - sns: "${self:service}-${opt:stage, self:provider.stage}-cacheWikipage"
   cacheStart:
     handler: api/wikipages.cacheStart
     memorySize: 128

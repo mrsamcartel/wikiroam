@@ -3,8 +3,8 @@ import { NgModule } from '@angular/core';
 import { HttpClientModule }    from '@angular/common/http';
 import { FormsModule }   from '@angular/forms';
 
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import { MatCardModule, MatButtonModule, MatInputModule } from '@angular/material';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatCardModule, MatButtonModule, MatInputModule, MatChipsModule } from '@angular/material';
 
 import { WikipageService } from './services/wikipage.service';
 
@@ -28,7 +28,8 @@ import { WikipageSearchComponent } from './wikipage-search/wikipage-search.compo
     BrowserAnimationsModule,
     MatCardModule,
     MatButtonModule,
-    MatInputModule
+    MatInputModule,
+    MatChipsModule
   ],
   providers: [WikipageService],
   bootstrap: [AppComponent]

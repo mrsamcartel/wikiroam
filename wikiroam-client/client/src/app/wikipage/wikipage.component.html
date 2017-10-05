@@ -1,13 +1,16 @@
 <md-card class="wikipage-card">
     <md-card-title>{{wikipage.title}}</md-card-title>
     <md-card-content *ngIf="wikipage.snippet">
-        <!--<p>pageid: {{wikipage.pageid}}</p>
-        <p *ngIf="wikipage.id">[id: {{wikipage.id}}]</p>-->
+        <!--<p>pageid: {{wikipage.pageid}}</p>-->
         <p class="wikipage-snippet" [innerHTML]="wikipage.snippet | safe"></p>
     </md-card-content>
     <md-card-actions>
-        <!--<button md-button>FROM</button>
-        <button md-button>TO</button>-->
+        <button md-button color="{{this.fromClass}}" (click)="toggleFrom()">FROM</button>
         <button md-button (click)="click(wikipage.pageid)">READ</button>
   </md-card-actions>
+  <md-card-footer *ngIf="fromVisible">
+      <md-chip-list>
+          <md-chip class="wikilink-chip" (click)="click(wikilink.fromid)" *ngFor="let wikilink of wikilinks | async">{{wikilink.fromtitle}}</md-chip>
+      </md-chip-list>
+  </md-card-footer>
 </md-card>
