@@ -80,7 +80,7 @@ module.exports.list = (event, context, callback) => {
   };
 
   console.log("Scanning Wikipage table.");
-  datalog('db_scans');
+  datalog('db.queries.scan');
 
   const onScan = (err, data) => {
     if (err) {
@@ -133,6 +133,7 @@ module.exports.get = (event, context, callback) => {
       console.log("Get succeeded.");
       datalog('db.responses', undefined, undefined, ['status:200']);
       datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
+
       return callback(null, {
         statusCode: 200,
         headers: headers,
@@ -142,6 +143,59 @@ module.exports.get = (event, context, callback) => {
   };
 
   dynamoDb.get(params, onGet);
+}
+
+// wikipagesGetBacklinksTo function
+module.exports.getBacklinksTo = (event, context, callback) => {
+  const start_time = new Date().getTime();
+  const toid = parseInt(event.pathParameters.id);
+
+  if (typeof toid !== 'number' || isNaN(toid)) {
+    console.error('Validation Failed');
+    callback(new Error('Couldn\'t get wikipage because of validation errors.'));
+    return;
+  }
+
+  var params = {
+    TableName: process.env.WIKILINK_TABLE,
+    IndexName: process.env.WIKILINK_TABLE_INDEX,
+    FilterExpression: 'toid = :toid',
+    ExpressionAttributeValues: {
+      ':toid': toid
+    },
+    ProjectionExpression: "fromid, fromtitle, toid, totitle"
+  };
+
+  console.log(`Getting Wikilinks pointing to wikipage with pageid: ${toid}.`);
+  datalog('db.queries.scan');
+
+  const onScan = (err, data) => {
+    if (err) {
+      console.log(`Scan failed`);
+      datalog('db.responses', undefined, undefined, ['status:500'])
+      return callback(err);
+    } else if (data.Count == 0) {
+      console.log(`No wikilink found with toid: ${toid}`);
+      datalog('db.responses', undefined, undefined, ['status:400'])
+      return callback(null, {
+        statusCode: 200,
+        headers: headers,
+        body: JSON.stringify(`No wikilink found with toid: ${toid}`)
+      });
+    } else {
+      console.log("Scan succeeded.");
+      datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.scan_count', 'histogram', data.Count);
+      datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
+      return callback(null, {
+        statusCode: 200,
+        headers: headers,
+        body: JSON.stringify(data.Items)
+      });
+    }
+  };
+
+  dynamoDb.scan(params, onScan);
 }
 
 // wikipagesSearchByPageid function
@@ -169,7 +223,7 @@ module.exports.searchbypageid = (event, context, callback) => {
   datalog('db.queries.scan');
 
   const onScan = (err, data) => {
-    if (err || data.Count == 0) {
+    if (err || data.Count == 0) { //FIX: separate err and data.Count == 0
       console.log(`No wikipage found with pageid: ${pageid}`);
       datalog('db.responses', undefined, undefined, ['status:400'])
       return callback(null, {
@@ -180,6 +234,7 @@ module.exports.searchbypageid = (event, context, callback) => {
     } else {
       console.log("Scan succeeded.");
       datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.scan_count', 'histogram', data.Count);
       datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
       return callback(null, {
         statusCode: 200,
@@ -198,7 +253,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
   const word = event.pathParameters.word;
 
   console.log("Searching Wikipedia by keyword.");
-  datalog('search.queries');
+  datalog('wiki.queries.get');
 
   var search_params = {
     method: 'GET',
@@ -222,14 +277,17 @@ module.exports.searchbykeyword = (event, context, callback) => {
         console.log(`Publishing SNS message: ${params.Message}`);
         sns.publish(params, function (err, data) {
           if (err) console.log(err, err.stack);
-          else console.log(data);
+          else {
+            datalog('sns.messages.submit');
+            console.log(data);
+          }
         });
       }
 
       console.log("Search succeeded.");
       console.log(`returned data: ${JSON.stringify(pages)}`);
-      datalog('search.responses', undefined, undefined, ['status:200']);
-      datalog('search.latency', 'histogram', (new Date().getTime()) - start_time);
+      datalog('wiki.responses', undefined, undefined, ['status:200']);
+      datalog('wiki.latency', 'histogram', (new Date().getTime()) - start_time);
 
       return callback(null, {
         statusCode: 200,
@@ -239,7 +297,7 @@ module.exports.searchbykeyword = (event, context, callback) => {
     })
     .catch(err => {
       console.log('Search failed to return data. Error JSON:', err);
-      datalog('search.responses', undefined, undefined, ['status:500']);
+      datalog('wiki.responses', undefined, undefined, ['status:500']);
       callback(err);
     });
 }
@@ -251,6 +309,8 @@ module.exports.cache = (event) => {
   const message = JSON.parse(event.Records[0].Sns.Message);
   const title = message.title;
   const pageid = message.pageid;
+  datalog('sns.messages.receive');
+  datalog('cache.queries');
 
   const params = {
     stateMachineArn: process.env.STATEMACHINE_ARN,
@@ -311,6 +371,7 @@ module.exports.cacheStart = (event, context, callback) => {
       //TODO check if cache needs to be refreshed
       console.log(`Found a match for pageid "${pageid}". Data is: ${JSON.stringify(data)}`);
       datalog('db.responses', undefined, undefined, ['status:200']);
+      datalog('db.scan_count', 'histogram', data.Count);
       datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
       return callback(null, {
         statusCode: 200,
@@ -368,7 +429,7 @@ module.exports.cacheBacklinks = (event, context, callback) => {
   const toid = event.body.pageid;
 
   console.log("Searching Wikipedia for backlinks.");
-  datalog('search.queries');
+  datalog('wiki.queries.get');
 
   var search_params = {
     method: 'GET',
@@ -380,8 +441,8 @@ module.exports.cacheBacklinks = (event, context, callback) => {
   rp(search_params)
     .then(res => {
       console.log("Search succeeded.");
-      datalog('search.responses', undefined, undefined, ['status:200']);
-      datalog('search.latency', 'histogram', (new Date().getTime()) - start_time);
+      datalog('wiki.responses', undefined, undefined, ['status:200']);
+      datalog('wiki.latency', 'histogram', (new Date().getTime()) - start_time);
 
       // Cache backlinks returned directly from wikipedia API
       var wikilinks = [];
@@ -396,7 +457,14 @@ module.exports.cacheBacklinks = (event, context, callback) => {
     })
     .map(wikilink => {
       console.log(`Submitting wikilink: ${JSON.stringify(wikilink)}`);
-      submitWikilinkP(wikilink);
+      submitWikilinkP(wikilink)
+      .then(res => {
+        datalog('db.responses', undefined, undefined, ['status:200']);
+        datalog('db.latency', 'histogram', (new Date().getTime()) - start_time);
+      })
+      .catch(err => {
+        datalog('db.responses', undefined, undefined, ['status:500']);
+      });
     })
     .then( res => {
       console.log(`cachebacklinks end`);
@@ -412,7 +480,7 @@ module.exports.cacheBacklinks = (event, context, callback) => {
     })
     .catch(err => {
       console.log('Search failed to return data. Error JSON:', err);
-      datalog('search.responses', undefined, undefined, ['status:500']);
+      datalog('wiki.responses', undefined, undefined, ['status:500']);
       callback(err);
     });
 };

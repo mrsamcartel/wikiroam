@@ -31,15 +31,6 @@ provider:
       Resource: "*"
 
 functions:
-  # wikipagesSubmit:
-  #   handler: api/wikipages.submit
-  #   memorySize: 128
-  #   description: Store a wikipage to DB.
-  #   events:
-  #     - http:
-  #         path: wikipages
-  #         method: post
-  #         cors: true
   wikipagesList:
     handler: api/wikipages.list
     memorySize: 128
@@ -58,15 +49,24 @@ functions:
           path: wikipages/{id}
           method: get
           cors: true
-  # wikipagesUpdate:
-  #   handler: api/wikipages.update
-  #   memorySize: 128
-  #   description: Update a wikipage by id.
-  #   events:
-  #     - http:
-  #         path: wikipages/{id}
-  #         method: put
-  #         cors: true
+  wikipagesGetBacklinksTo:
+    handler: api/wikipages.getBacklinksTo
+    memorySize: 128
+    description: Get the backlinks for a wikipage
+    events:
+      - http:
+          path: wikipages/{id}/backlinks
+          method: get
+          cors: true
+  wikipagesSearchByPageid:
+    handler: api/wikipages.searchbypageid
+    memorySize: 128
+    description: Search wikipage by pageid.
+    events:
+      - http:
+          path: wikipages/search/pageid/{pageid}
+          method: get
+          cors: true
   wikipagesSearchByKeyword:
     handler: api/wikipages.searchbykeyword
     memorySize: 128
@@ -76,15 +76,6 @@ functions:
           path: wikipages/search/keyword/{word}
           method: get
           cors: true
-  # wikipagesSearchByPageid:
-  #   handler: api/wikipages.searchbypageid
-  #   memorySize: 128
-  #   description: Get a wikipage by pageid.
-  #   events:
-  #     - http:
-  #         path: wikipages/search/pageid/{pageid}
-  #         method: get
-  #         cors: true
   wikipagesCache:
     handler: api/wikipages.cache
     memorySize: 128
@@ -188,7 +179,7 @@ resources:
           - AttributeName: "fromid"
             KeyType: "HASH"
         GlobalSecondaryIndexes:
-          - IndexName: ${self:provider.environment.WIKIPAGE_TABLE_INDEX}
+          - IndexName: ${self:provider.environment.WIKILINK_TABLE_INDEX}
             KeySchema:
               - AttributeName: "toid"
                 KeyType: HASH
